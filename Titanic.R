@@ -118,7 +118,9 @@ class(Titles)
 
 ggplot(combine[1:891,], aes(x=SibSp,fill=Survived)) +
   facet_grid(~Pclass+Sex) +
-  geom_histogram(stat="count")extractTitle <- function(x){
+  geom_histogram(stat="count")
+
+extractTitle <- function(x){
     if(grepl("Mrs.", x)) {return("Mrs.")}
     else if(grepl("Miss.",x)) {return("Miss.")}
     else if(grepl("Mr.",x)) {return("Mr.")}
@@ -249,4 +251,128 @@ ggplot(combine[1:891,], aes(x=FamSize,fill=Survived)) +
   xlab("Family Size") +
   ylab("Total Count")
 ##comment: It seems that the visualisation confirms that what we assumed earlier. The more family you would have - the less likely you would survive. However, this trend might be less likely to 1st or 2nd class females.
+
+
+
+
+
+###Ticket variable
+combine$Ticket <- as.character(combine$Ticket)
+##comment: change into string value as they all seem to be a unique value. We doubt if there is any relationship, but it would be worth if we can check
+
+#?substring vs ?strsplit vs ?substr vs ?grep vs ?grepl vs ?gsub vs ?str_detect
+FirstLetter <- ifelse(combine$Ticket == "", " ", substr(combine$Ticket, 1, 1))
+unique(FirstLetter)
+
+combine$FirstLetter <- FirstLetter
+
+ggplot(combine[combine$Survived != "None",], aes(x=FirstLetter,fill=Survived )) +
+  geom_bar() +
+  ylab("Total Count")
+##comment: Interesting, it seems that there were some significant values were shown, especially 1,2,3 and P & S. However, does 1,2,3 means Pclass? 
+
+ggplot(combine[combine$Survived != "None",], aes(x=FirstLetter,fill=Survived)) +
+  geom_bar() +
+  facet_wrap(~Pclass) +
+  ylab("Total Count")
+##comment: Maybe it is, it seems that the 1,2,3 numbers are more corresponding to the Plcass levels. 
+
+ggplot(combine[combine$Survived != "None",], aes(x=FirstLetter,fill=Survived)) +
+  geom_bar() +
+  facet_wrap(~Pclass+Title) +
+  ylab("Total Count")
+##comment: However, there are not many information regarding different ticket numbers, it only confirms what we had earlier with Pclass and Title
+
+
+
+
+
+
+
+###Fare variable
+summary(combine$Fare)
+##comment: Median & Mean seem to be different, skewed data..The paid gap between the highest and the lowest seems to be extreme.
+
+ggplot(combine[1:891,], aes(x=Fare)) +
+  geom_histogram(bins = 200)
+
+ggplot(combine[1:891,], aes(x=Fare,fill=Survived)) +
+  geom_histogram(binwidth=5) +
+  facet_wrap(~Pclass + Title)
+##comment: Fare does not add much into our information...I would not replace Plcass with this as there are some skewed data which may impact to our conclusion.
+
+
+
+
+
+###Cabin variable
+
+str(combine$Cabin)
+combine$Cabin[1:30]
+##comment: Lots of empty factors... It seems to contain Alphabet + Numbers combination
+
+CabinLetter <- substr(combine$Cabin,1,1)
+##comment: Lets do what we have done for Ticket variable
+combine$CabinLetter <- as.factor(CabinLetter)
+levels(unique(combine$CabinLetter))
+##comment: There are alphabets from A to T
+
+
+ggplot(combine[1:891,], aes(x=CabinLetter, fill=Survived)) +
+  geom_bar()
+
+ggplot(combine[1:891,], aes(x=CabinLetter, fill=Survived)) +
+  geom_bar()+
+  facet_wrap(~Pclass)
+##comment: Most of alphabets were located to first class which makes sense as cabins would been allocated as a private room and those traits would be more affordable to first class crews. Probaly this is why 2nd or 3rd class have more empty values as they would not have cabins during shipping.
+
+ggplot(combine[1:891,], aes(x=CabinLetter, fill=Survived)) +
+  geom_bar()+
+  facet_wrap(~Pclass+Title)
+##comment: Nothing interesting in here. 
+
+
+##Crews with multiple cabins 
+
+#?lapply vs ?sapply vs ?vapply vs ?rapply
+#?gsub
+CabinList <- str_split(combine$Cabin , " ")
+
+IdentifyNA <- function(x){
+  if (x == "") {return("0")}
+  else {return(length(x))}
+}
+##comment: This function allows to identify any non-cabin as the number of zero.
+
+MultipleCabin <- NULL
+for (n in 1:length(CabinList)){
+  MultipleCabin <- c(MultipleCabin, IdentifyNA(CabinList[[n]]))
+}
+##comment: counting how many cabins were for each passenger, the recursive function applied by each of object.
+
+length(MultipleCabin)
+combine$MultipleCabin <- as.factor(MultipleCabin)
+##comment: MultipleCabin counts how many Cabins they have for each passenger. MultipleCabin was embedded as a new column
+
+library(dplyr)
+
+combine[1:891,] %>%
+  ggplot(aes(x=MultipleCabin, fill=Survived)) +
+  geom_bar()
+
+combine[1:891,] %>%
+  ggplot(aes(x=MultipleCabin, fill=Survived)) +
+  geom_bar()+
+  facet_wrap(~Pclass)
+##comment: Most of people who would have lots of cabins were more likely to be a higher class (i.e. 1st class)
+##        You can see that the people who does not have cabin (i.e. MultipleCabin = 0) are rare in a higher class, whereas the number of MultipleCabin increases, is is more likely they are from a higher class
+
+combine[1:891,] %>%
+  filter(MultipleCabin != "1") %>%
+  ggplot(aes(x=MultipleCabin, fill=Survived)) +
+  geom_bar()+
+  facet_wrap(~Pclass+Title)
+##comment: However, this variable does not seem to add any interesting information to predict the casualties.
+
+
 
