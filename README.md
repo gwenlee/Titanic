@@ -10,5 +10,3 @@ From this project, following skills may have been applied
 - data wrangling
 - data analysis
 - data visualization
-- feature engineering
-- machine learning
